@@ -1,0 +1,47 @@
+services:
+  routearr: # Because pirates say 'arr'
+    image: ghcr.io/kontr0x/routearr:main
+    container_name: routearr
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE # Some hosts may not load the iptables kernel modules by default
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - DEBUG=1 # Currently this needs to be set to 1, otherwise the VPN connection will not work
+      - TZ=Europe/Berlin # Set your timezone
+      - VPN_TYPE=openvpn
+      - VPN_CONFIG=config.ovpn
+      #- OPENVPN_USER="username"
+      #- OPENVPN_PASS="password"
+      - OPENVPN_AUTH_FILE="auth.txt"
+    volumes:
+      - /lib/modules:/lib/modules
+      - ../../config.ovpn:/etc/openvpn/config.ovpn:ro
+      - ../../login.conf:/etc/openvpn/auth.txt:ro
+    stdin_open: true
+    tty: true
+    restart: no
+
+  some-service:
+    image: alpine
+    container_name: some-service
+    depends_on:
+      - routearr
+    network_mode: service:routearr
+    stdin_open: true
+    tty: true
+    command: /bin/sh
+
+networks:
+  default:
+    name: routearr
+    ipam:
+      config:
+        - subnet: 172.72.0.0/16
+          aux_addresses:
+            routearr: 172.72.0.2
+            some-service: 172.72.0.3

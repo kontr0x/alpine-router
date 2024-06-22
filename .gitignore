@@ -1,0 +1,9 @@
+# Allow list
+!entrypoint.sh
+
+# Ignore VPN configuration files
+*.conf
+*.ovpn
+
+# Ignore custom scripts
+*.sh

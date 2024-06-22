@@ -2,10 +2,11 @@ services:
   routearr: # Because pirates say 'arr'
 
     build:
-      context: ./
+      context: ../../
       dockerfile: ./Dockerfile
 
     container_name: routearr
+    privileged: true # Currently this needs to be set to true, otherwise the VPN connection will not work
     cap_add:
       - NET_ADMIN
       - SYS_MODULE # Some hosts may not load the iptables kernel modules by default
@@ -15,34 +16,27 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      - DEBUG=1
-      - TZ=Europe/Berlin
-      - VPN_TYPE=openvpn # This can be either openvpn or wireguard
-      - VPN_CONFIG=config.ovpn # This is the path to the VPN configuration file
-      - OPENVPN_AUTH_FILE=login.conf # This can also be set by using OPENVPN_USER and OPENVPN_PASS
+      - DEBUG=1 # Currently this needs to be set to 1, otherwise the VPN connection will not work
+      - TZ=Europe/Berlin # Set your timezone
+      - VPN_TYPE=wireguard
+      - VPN_CONFIG=wg1.conf # Currently this needs to be set anything other than 'wg0.conf', otherwise the VPN connection will not work
     volumes:
       - /lib/modules:/lib/modules
-      - ./config.ovpn:/etc/openvpn/config.ovpn:ro
-      # - ./wg1.conf:/etc/wireguard/wg1.conf:ro
-      - ./login.conf:/etc/openvpn/login.conf:ro
-      # - ./fwrules.sh:/fwrules.sh:ro # Uncomment this if needed
-      # - ./commands.sh:/commands.sh:ro  # Uncomment this if needed
+      - ../../wg0.conf:/etc/wireguard/wg1.conf:ro
     stdin_open: true
     tty: true
     restart: no
 
-  client:
+  some-service:
     image: alpine
-    container_name: client
+    container_name: some-service
     depends_on:
       - routearr
-    environment:
-      - TZ=Europe/Berlin
     network_mode: service:routearr
     stdin_open: true
     tty: true
     command: /bin/sh
-    
+
 networks:
   default:
     name: routearr
@@ -51,4 +45,4 @@ networks:
         - subnet: 172.72.0.0/16
           aux_addresses:
             routearr: 172.72.0.2
-            client: 172.72.0.3
+            some-service: 172.72.0.3
